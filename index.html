@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Taxonomy of Ambient Information Systems:</title>
+<style>
+
+svg {
+  font: 10px sans-serif;
+}
+
+.background path {
+  fill: none;
+  stroke: none;
+  stroke-width: 20px;
+  pointer-events: stroke;
+}
+
+.foreground path {
+  fill: none;
+  stroke: steelblue;
+  stroke-width: 1.5px;
+}
+
+.axis .title {
+  font-size: 11px;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.axis line,
+.axis path {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+.label {
+  -webkit-transition: fill 125ms linear;
+}
+
+.active .label:not(.inactive) {
+  font-weight: bold;
+}
+
+.label.inactive {
+  fill: #ccc;
+}
+
+.foreground path.inactive {
+  stroke: #ccc;
+  stroke-opacity: .5;
+  stroke-width: 1px;
+}
+
+</style>
+<head>
+Taxonomy of Ambient Information Systems:
+</head>
+
+<body>
+  <h6>
+  Adopted from Pousman and Stasko <br>
+  Georgia Institute of Technology
+  </h6>
+  <div>
+<script src="http://d3js.org/d3.v2.min.js"></script>
+<script>
+
+//Code base is Mike Bostock's at http://bl.ocks.org/mbostock/3709000
+
+var margin = {top: 30, right: 40, bottom: 20, left: 200},
+    width = 960 - margin.left - margin.right,
+    height = 500 - margin.top - margin.bottom;
+
+var overall_scale = d3.scale.ordinal()
+
+var dimensions = [
+  {
+    name: "System",
+    scale: d3.scale.ordinal().rangePoints([height, 0]),
+    type: String
+  },
+  {
+    name: "Information_Capacity",
+    scale: d3.scale.linear().range([height, 0]),
+    type: Number
+  },
+  {
+    name: "Notification_Level",
+    scale: d3.scale.linear().range([height, 0]),
+    type: Number
+  },
+  {
+    name: "Representationl_Fidelity",
+    scale: d3.scale.linear().range([height, 0]),
+    type: Number
+  },
+  {
+    name: "Aesthetic_Emphasis",
+    scale: d3.scale.linear().range([height, 0]),
+    type: Number
+  }
+];
+
+var x = d3.scale.ordinal()
+    .domain(dimensions.map(function(d) { return d.name; }))
+    .rangePoints([0, width]);
+
+var line = d3.svg.line()
+    .defined(function(d) { return !isNaN(d[1]); });
+
+var yAxis = d3.svg.axis()
+    .orient("left");
+
+var svg = d3.select("body").append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+  .append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+var dimension = svg.selectAll(".dimension")
+    .data(dimensions)
+  .enter().append("g")
+    .attr("class", "dimension")
+    .attr("transform", function(d) { return "translate(" + x(d.name) + ")"; });
+
+d3.csv("taxonomy.csv", function(data) {
+  dimensions.forEach(function(dimension) {
+    dimension.scale.domain(dimension.type === Number
+        ? d3.extent(data, function(d) { return +d[dimension.name]; })
+        : data.map(function(d) { return d[dimension.name]; }).sort());
+  });
+
+  svg.append("g")
+      .attr("class", "background")
+    .selectAll("path")
+      .data(data)
+    .enter().append("path")
+      .attr("d", draw);
+
+  svg.append("g")
+      .attr("class", "foreground")
+    .selectAll("path")
+      .data(data)
+    .enter().append("path")
+      .attr("d", draw);
+
+  dimension.append("g")
+      .attr("class", "axis")
+      .each(function(d) { d3.select(this).call(yAxis.scale(d.scale)); })
+    .append("text")
+      .attr("class", "title")
+      .attr("text-anchor", "middle")
+      .attr("y", -9)
+      .text(function(d) { return d.name; });
+
+  // Rebind the axis data to simplify mouseover.
+  svg.select(".axis").selectAll("text:not(.title)")
+      .attr("class", "label")
+      .data(data, function(d) { return d.name || d; });
+
+  var projection = svg.selectAll(".axis text,.background path,.foreground path")
+      .on("mouseover", mouseover)
+      .on("mouseout", mouseout);
+
+  function mouseover(d) {
+    svg.classed("active", true);
+    projection.classed("inactive", function(p) { return p !== d; });
+    projection.filter(function(p) { return p === d; }).each(moveToFront);
+  }
+
+  function mouseout(d) {
+    svg.classed("active", false);
+    projection.classed("inactive", false);
+  }
+
+  function moveToFront() {
+    this.parentNode.appendChild(this);
+  }
+});
+
+function draw(d) {
+  return line(dimensions.map(function(dimension) {
+    return [x(dimension.name), dimension.scale(d[dimension.name])];
+  }));
+}
+
+</script>
+</div>
+</body>
