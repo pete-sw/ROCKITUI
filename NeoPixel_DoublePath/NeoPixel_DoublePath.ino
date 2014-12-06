@@ -36,7 +36,7 @@ int FSRs[] = {0,1,2,3}; // pins in order for four step sensors.
 int fsrvals[] = {0,0,0,0};
 int lights[] = {2, 10, 18, 26, 28}; // indices of the lights we will show, in order, for each FSR. add 28
 int currentFSR = 0; // index of array
-
+int done =0;
 char serInString[100];  // array that will hold the different bytes of the string. 100=100characters;
                         // -> you must state how long the array will be else it won't work properly
 
@@ -57,6 +57,21 @@ void loop() {
   memset(serInString, 0, 100);
   //read the serial port and create a string out of what you read
   readSerialString(serInString);
+  if(serInString[0] == 'd') {
+    // received proper microphone scream
+    Serial.println("askldjflkasdjf");
+    flash(2);
+
+    currentFSR=0;
+  }
+  if(serInString[0] == 'x') {
+    // time out on microphone - never receieved proper audio level
+    Serial.println("boooooo");
+    flash(1);
+
+    currentFSR=0;
+  }
+
 
   // check input -- "active" vs "quiet" or "1,2"
   // if we have time, additional "party" (3) mode where you have to bring a friend.
@@ -100,7 +115,7 @@ void loop() {
 
   // which FSR do we look for next?
   String debug = "LOOKING FOR NUMBER " + String(currentFSR);
-  Serial.println(debug);
+//  Serial.println(debug);
 
   // get all the FSR values  
   for(int j = 0 ; j < 4 ; ++j) {
@@ -114,65 +129,87 @@ void loop() {
     if(fsrvals[j] > threshold) {
       if(j == currentFSR) {
         // you stepped on the right one!
-        currentFSR++;
-  
-        if(s == 1) {
-          // fast delay
-          delay(1000);
+        if(s == 1 && currentFSR == 3) {
+          Serial.println("activecomplete");
+        } else if(s == 2 && currentFSR == 3) {
+          Serial.println("quietcomplete");
         } else {
-          // slow delay
-          delay(2000);
+          currentFSR++;
+  
+          if(s == 1) {
+            // fast delay
+            delay(1000);
+          } else {
+            // slow delay
+            delay(2000);
+          }
         }
       } else if(j == currentFSR-1) {
         // still standing on the previous step
       } else {
         // wrong one! error state, and reset!
         // flash all lights red a few times
-        for (int k=0; k < strip.numPixels(); k++) {
-          strip.setPixelColor(k, 255,0,0);
-        }
-        for (int k=0; k < strip2.numPixels(); k++) {
-          strip2.setPixelColor(k, 255,0,0);
-        }
-        strip.show();
-        strip2.show();
-        delay(300);
-  
-        for (int k=0; k < strip.numPixels();k++) {
-          strip.setPixelColor(k, 0);
-        }
-        for (int k=0; k < strip2.numPixels(); k++) {
-          strip2.setPixelColor(k, 0);
-        }
-        strip.show();
-        strip2.show();
-        delay(300);
-        for (int k=0; k < strip.numPixels(); k++) {
-          strip.setPixelColor(k, 255,0,0);
-        }
-        for (int k=0; k < strip2.numPixels(); k++) {
-          strip2.setPixelColor(k, 255,0,0);
-        }
-        strip.show();
-        strip2.show();
-        delay(300);
-  
-        for (int k=0; k < strip.numPixels();k++) {
-          strip.setPixelColor(k, 0);
-        }
-        for (int k=0; k < strip2.numPixels(); k++) {
-          strip2.setPixelColor(k, 0);
-        }
-        strip.show();
-        strip2.show();
-        delay(300);
-  
+        flash(1);
   
         // reset current one
         currentFSR = 0;
       }
     }
   }
+}
+
+void flash(int type) {
+  uint32_t flashcolor;
+  int fdelay = 300;
+  if(type == 1) {
+    // error
+    flashcolor = strip.Color(255, 0, 0);
+    fdelay = 300;
+  } else if(type == 2) {
+    // end success
+    flashcolor = strip.Color(0, 0, 255);
+    fdelay = 500;
+  }
+  
+
+  for (int k=0; k < strip.numPixels(); k++) {
+    strip.setPixelColor(k, flashcolor);
+  }
+  for (int k=0; k < strip2.numPixels(); k++) {
+    strip2.setPixelColor(k, flashcolor);
+  }
+  strip.show();
+  strip2.show();
+  delay(fdelay);
+  
+  for (int k=0; k < strip.numPixels();k++) {
+    strip.setPixelColor(k, 0);
+  }
+  for (int k=0; k < strip2.numPixels(); k++) {
+    strip2.setPixelColor(k, 0);
+  }
+  strip.show();
+  strip2.show();
+  delay(fdelay);
+  for (int k=0; k < strip.numPixels(); k++) {
+    strip.setPixelColor(k, flashcolor);
+  }
+  for (int k=0; k < strip2.numPixels(); k++) {
+    strip2.setPixelColor(k, flashcolor);
+  }
+  strip.show();
+  strip2.show();
+  delay(fdelay);
+  
+  for (int k=0; k < strip.numPixels();k++) {
+    strip.setPixelColor(k, 0);
+  }
+  for (int k=0; k < strip2.numPixels(); k++) {
+    strip2.setPixelColor(k, 0);
+  }
+  strip.show();
+  strip2.show();
+  delay(fdelay);
 }
 
 //read a string from the serial and store it in an array
