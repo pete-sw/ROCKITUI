@@ -37,8 +37,9 @@ def getAmbientAudio():
                     frames_per_buffer=CHUNK) #buffer
     frames = []
 
+    print "sensing ambient audio level"
+
     total = int(RATE / CHUNK * RECORD_SECONDS)
-    print total
     total_rms = 0;
     for i in range(0, total):
         data = stream.read(CHUNK)
@@ -119,28 +120,34 @@ val = 0
 full_val = ''
 #From  http://www.olgapanades.com/blog/controlling-arduino-with-python/
 arduino = serial.Serial('/dev/tty.usbmodemfa141', 9600)
-print 'listening on serial'
 
-while arduino.readline():
-    #Reset variables
-    val = 0
-    full_val = ''
-    #Pull the line
-    try:
-        val = arduino.readline()
+def listenArduino():
+    print 'listening on serial'
+    while arduino.readline():
+        #Reset variables
+        val = 0
+        full_val = ''
+        #Pull the line
+        try:
+            val = arduino.readline()
 
-        for char in val:
-            #Make sure that the character isn't some weird thing
-            if char.isalpha():
-                full_val = full_val + char
-        print "Cleaned value is: " + full_val
-        if full_val == 'activecomplete':
-            print 'received activecomplete, now listening...'
-            checkaudio(1, ambientLevel)
-            break
-        elif full_val == 'quietcomplete':
-            print 'received quietcomplete, now listening...'
-            checkaudio(2, ambientLevel)
-            break
-    except serial.serialutil.SerialException:
-        pass
+            for char in val:
+                #Make sure that the character isn't some weird thing
+                if char.isalpha():
+                    full_val = full_val + char
+            print "Cleaned value is: " + full_val
+            if full_val == 'activecomplete':
+                print 'received activecomplete, now listening...'
+                checkaudio(1, ambientLevel)
+                return 1
+            elif full_val == 'quietcomplete':
+                print 'received quietcomplete, now listening...'
+                checkaudio(2, ambientLevel)
+                return 1
+        except serial.serialutil.SerialException:
+            pass
+
+
+while 1:
+    listenArduino()
+    time.sleep(5)
